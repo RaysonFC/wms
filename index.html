@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WMS Analítico</title>
+  <title>Análise de Estoque</title>
   <link rel="stylesheet" href="wms.css">
 </head>
 <body>
@@ -17,8 +17,8 @@
   <div class="upload-container">
     <!-- Logo -->
     <div class="upload-logo">
-      <div class="logo-wms">WMS</div>
-      <div class="logo-sub">Sistema de Gestão de Armazém</div>
+      <div class="logo-wms" style="font-size:38px;letter-spacing:6px">ANÁLISE DE ESTOQUE</div>
+      <div class="logo-sub">Análise e Controle de Estoque</div>
       <div class="logo-tag">TRANSFER INTELLIGENCE v2.0</div>
     </div>
 
@@ -71,9 +71,9 @@
         </svg>
       </button>
       <div class="header-brand">
-        <span class="brand-wms">WMS</span>
+        <span class="brand-wms" style="font-size:13px;letter-spacing:2px">ANÁLISE DE ESTOQUE</span>
         <span class="brand-sep">·</span>
-        <span class="brand-analytic">Analítico</span>
+        
         <span class="brand-sep">·</span>
         <span class="brand-file" id="brand-file"></span>
       </div>
@@ -241,7 +241,7 @@
     <div class="transfer-header">
       <div class="transfer-header-icon">⇄</div>
       <div class="transfer-header-text">
-        <h3>Sugestões de Transferência</h3>
+        <h3>Sugestões de Transferência entre CDs</h3>
         <p>Algoritmo considera regras de armazém (ARM 1 · ARM 8 · ARM 28) e excedente real de cada origem.</p>
       </div>
       <div class="transfer-stats">
@@ -484,7 +484,7 @@
           style="flex-direction:row;align-items:center;gap:10px;padding:10px 16px;width:100%">
           <span style="font-size:18px">📋</span>
           <div>
-            <div class="export-option-name">Resumo WMS.csv</div>
+            <div class="export-option-name">Resumo Estoque.csv</div>
             <div class="export-option-desc">Visão consolidada: totais, críticos, transferências, sem estoque</div>
           </div>
         </button>
