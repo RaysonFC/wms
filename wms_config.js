@@ -27,6 +27,16 @@ function normalizeCd(v) {
   return s;
 }
 
+/**
+ * CDs participantes de transferência.
+ * Apenas 1, 3, 6, 7 são válidos — CD 2 e demais são bloqueados.
+ */
+const ALLOWED_CDS = new Set(['1', '3', '6', '7']);
+
+function isCdBlocked(v) {
+  return !ALLOWED_CDS.has(normalizeCd(v));
+}
+
 function isArmazBlocked(v) {
   return BLOCKED_ARMAZ_RAW.has(normalizeArmaz(v));
 }
@@ -37,7 +47,13 @@ function isValidTransferPair(orig, dest) {
   const oCd  = normalizeCd(orig.cd);
   const dCd  = normalizeCd(dest.cd);
 
+  // Bloqueia CDs fora da lista permitida (ex: CD 2, CD 4, CD 5...)
+  if (isCdBlocked(orig.cd) || isCdBlocked(dest.cd)) return false;
+
+  // Bloqueia armazéns de destino proibidos
   if (isArmazBlocked(dest.armaz)) return false;
+
+  // Mesmo CD + armazém → sem sentido
   if (oCd === dCd && oArm === dArm) return false;
 
   if (oArm === '1') return true;
