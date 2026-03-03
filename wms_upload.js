@@ -124,14 +124,16 @@
             desc_armaz:      idxMap.desc_armaz   !== -1 ? String(row[idxMap.desc_armaz]   ?? '').trim() : '',
             devolver:        idxMap.devolver      !== -1 ? num(row[idxMap.devolver])                    : null,
           }))
-          .filter(r => r.cd_material);
+          .filter(r => r.cd_material && !r.cd_material.startsWith('900'));
 
         if (!WMS_DATA.length) {
           showError('Nenhum dado válido encontrado na planilha. Verifique o formato.');
           return;
         }
 
-        setProgress(100, `✔ ${WMS_DATA.length.toLocaleString('pt-BR')} registros carregados`);
+        const blocked900 = dataRows.length - WMS_DATA.length - dataRows.filter(r => !String(r[idxMap.cd_material] ?? '').trim()).length;
+        const blockedMsg = blocked900 > 0 ? ` · ${blocked900.toLocaleString('pt-BR')} cód. 900* ignorados` : '';
+        setProgress(100, `✔ ${WMS_DATA.length.toLocaleString('pt-BR')} registros carregados${blockedMsg}`);
 
         /* Gera sugestões de transferência */
         TRANSFER_DATA = buildTransferSuggestions();
