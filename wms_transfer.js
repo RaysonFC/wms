@@ -18,7 +18,7 @@
 
 function buildTransferSuggestions() {
 
-  /* ── Passo 1: Agrupa saldo e disponivel por (material + cd + armaz) ── */
+  /* ── Passo 1: Agrupa saldo por (material + cd + armaz) ── */
   const grouped = {};
   WMS_DATA.forEach(r => {
     const key = `${r.cd_material}|||${normalizeCd(r.cd)}|||${normalizeArmaz(r.cd_centro_armaz)}`;
@@ -28,43 +28,40 @@ function buildTransferSuggestions() {
         desc_material:   r.desc_material,
         cd:              normalizeCd(r.cd),
         armaz:           normalizeArmaz(r.cd_centro_armaz),
-        saldo:      0,
-        disponivel: 0,
+        saldo: 0,
       };
     }
-    grouped[key].saldo      += r.saldo;
-    grouped[key].disponivel += (r.disponivel !== null ? r.disponivel : r.saldo);
+    grouped[key].saldo += r.saldo;
   });
 
   const entries = Object.values(grouped);
 
-  /* ── Passo 2: Separa destinos e origens candidatas ──
-     REGRA: usa `disponivel` para avaliar excedente e necessidade.
-     Destino  = disponivel < CRITICAL (precisa receber)
-     Origem   = disponivel > CRITICAL (tem excedente real para doar)          */
+  /* ── Passo 2: Separa destinos e origens candidatas ── */
 
+  // Destinos: não bloqueados com saldo crítico
   const destinations = entries.filter(e =>
-    !isArmazBlocked(e.armaz) && e.disponivel < CRITICAL
+    !isArmazBlocked(e.armaz) && e.saldo < CRITICAL
   );
 
+  // Origens candidatas: ARM 1, 8 ou 28 com saldo > 0 e excedente real
   const origins = entries.filter(e => {
     const arm = normalizeArmaz(e.armaz);
     if (!['1','8','28'].includes(arm)) return false;
-    if (e.disponivel <= 0) return false;
-    return (e.disponivel - CRITICAL) > 0; // tem excedente disponível real
+    if (e.saldo <= 0) return false;
+    return (e.saldo - CRITICAL) > 0; // tem excedente
   });
 
-  /* ── Passo 3: Detecta itens sem disponível nas origens elegíveis ── */
+  /* ── Passo 3: Detecta itens sem saldo nas origens elegíveis ── */
   ZERO_STOCK_DATA = [];
   entries.forEach(e => {
     const arm = normalizeArmaz(e.armaz);
-    if (['1','8','28'].includes(arm) && e.disponivel <= 0) {
+    if (['1','8','28'].includes(arm) && e.saldo <= 0) {
       ZERO_STOCK_DATA.push({
         cd_material:     e.cd_material,
         desc_material:   e.desc_material,
         cd:              e.cd,
         cd_centro_armaz: e.armaz,
-        saldo:           e.disponivel,
+        saldo:           e.saldo,
       });
     }
   });
@@ -73,6 +70,7 @@ function buildTransferSuggestions() {
   const suggestions = [];
 
   destinations.forEach(dest => {
+    // Filtra origens válidas para este destino
     const validOrigins = origins.filter(orig =>
       orig.cd_material === dest.cd_material &&
       isValidTransferPair(
@@ -83,29 +81,29 @@ function buildTransferSuggestions() {
 
     if (validOrigins.length === 0) return;
 
-    // Melhor doador = maior disponível
-    validOrigins.sort((a, b) => b.disponivel - a.disponivel);
+    // Melhor doador = maior excedente
+    validOrigins.sort((a, b) => b.saldo - a.saldo);
     const orig = validOrigins[0];
 
-    const need  = CRITICAL - dest.disponivel;
-    const avail = orig.disponivel - CRITICAL;
+    const need  = CRITICAL - dest.saldo;
+    const avail = orig.saldo - CRITICAL;
     const qty   = Math.ceil(Math.min(need, avail));
     if (qty <= 0) return;
 
-    const pct      = dest.disponivel / CRITICAL;
-    const priority = dest.disponivel <= 0 || pct < 0.5 ? 'URGENTE'
-                   : pct < 0.75                         ? 'ALTO'
-                   :                                      'NORMAL';
+    const pct      = dest.saldo / CRITICAL;
+    const priority = dest.saldo <= 0 || pct < 0.5 ? 'URGENTE'
+                   : pct < 0.75                    ? 'ALTO'
+                   :                                 'NORMAL';
 
     suggestions.push({
       cd_material:   dest.cd_material,
       desc_material: dest.desc_material,
       cd_destino:    dest.cd,
       armaz_destino: dest.armaz,
-      saldo_destino: dest.disponivel,
+      saldo_destino: dest.saldo,
       cd_origem:     orig.cd,
       armaz_origem:  orig.armaz,
-      saldo_origem:  orig.disponivel,
+      saldo_origem:  orig.saldo,
       qtd_sugerida:  qty,
       prioridade:    priority,
     });

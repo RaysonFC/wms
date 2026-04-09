@@ -29,6 +29,10 @@ function populateCdFilter() {
   sel.innerHTML = '<option value="">Todos</option>';
   cds.forEach(cd => sel.innerHTML += `<option value="${cd}">CD ${cd}</option>`);
 
+  const tsel = document.getElementById('filter-t-dest');
+  tsel.innerHTML = '<option value="">Todos</option>';
+  cds.forEach(cd => tsel.innerHTML += `<option value="${cd}">CD ${cd}</option>`);
+
   document.getElementById('badge-cds').textContent = cds.length;
 }
 
