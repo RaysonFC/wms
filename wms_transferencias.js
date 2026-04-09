@@ -10,14 +10,20 @@ const stateNoStock = { page: 1 };
 /* ---- Filtros da tabela principal ---- */
 function getTransferFiltered() {
   const produto  = document.getElementById('filter-t-produto').value.toLowerCase().trim();
-  const dest     = document.getElementById('filter-t-dest').value;
+  const origCd   = document.getElementById('filter-t-orig-cd').value;
+  const destCd   = document.getElementById('filter-t-dest-cd').value;
   const priority = document.getElementById('filter-t-priority').value;
 
   return TRANSFER_DATA.filter(r => {
+    // Somente pares CD 1 × 3 × 7
+    if (!['1','3','7'].includes(r.cd_origem))  return false;
+    if (!['1','3','7'].includes(r.cd_destino)) return false;
+
     if (produto  && !r.cd_material.toLowerCase().includes(produto)
                  && !r.desc_material.toLowerCase().includes(produto)) return false;
-    if (dest     && r.cd_destino !== dest)                            return false;
-    if (priority && r.prioridade !== priority)                        return false;
+    if (origCd   && r.cd_origem  !== origCd)                          return false;
+    if (destCd   && r.cd_destino !== destCd)                          return false;
+    if (priority && r.prioridade !== priority)                         return false;
     return true;
   });
 }
@@ -101,7 +107,7 @@ function renderNoStock() {
 
 /* ---- Init ---- */
 function initTransfer() {
-  ['filter-t-produto', 'filter-t-dest', 'filter-t-priority'].forEach(id => {
+  ['filter-t-produto', 'filter-t-orig-cd', 'filter-t-dest-cd', 'filter-t-priority'].forEach(id => {
     document.getElementById(id).addEventListener('input',  () => {
       state.transfer.page = 1;
       stateNoStock.page   = 1;
@@ -117,7 +123,7 @@ function initTransfer() {
   });
 
   document.getElementById('clear-t-filters').addEventListener('click', () => {
-    ['filter-t-produto', 'filter-t-dest', 'filter-t-priority'].forEach(id => {
+    ['filter-t-produto', 'filter-t-orig-cd', 'filter-t-dest-cd', 'filter-t-priority'].forEach(id => {
       document.getElementById(id).value = '';
     });
     state.transfer.page = 1;
