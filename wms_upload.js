@@ -87,8 +87,18 @@
           workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
         }
 
-        const sheetName = workbook.SheetNames[0];
-        const sheet     = workbook.Sheets[sheetName];
+        /* ── Seleciona a aba AVM_ESTOQUE_Unidade (prioridade),
+              caso não exista cai na primeira aba disponível ── */
+        const TARGET_SHEET = 'AVM_ESTOQUE_Unidade';
+        const sheetName = workbook.SheetNames.find(
+          n => n.trim().toLowerCase() === TARGET_SHEET.toLowerCase()
+        ) ?? workbook.SheetNames[0];
+
+        if (sheetName.trim().toLowerCase() !== TARGET_SHEET.toLowerCase()) {
+          console.warn(`Aba "${TARGET_SHEET}" não encontrada. Usando "${sheetName}" como fallback.`);
+        }
+
+        const sheet = workbook.Sheets[sheetName];
 
         setProgress(75, 'Mapeando colunas...');
 
