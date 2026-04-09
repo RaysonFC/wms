@@ -19,7 +19,7 @@
     <div class="upload-logo">
       <div class="logo-wms" style="font-size:38px;letter-spacing:6px">ANÁLISE DE ESTOQUE</div>
       <div class="logo-sub">Análise e Controle de Estoque</div>
-      <div class="logo-tag">TRANSFER INTELLIGENCE v2.0</div>
+      <div class="logo-tag">TRANSFER INTELLIGENCE v2.1</div>
     </div>
 
     <!-- Drop zone -->
@@ -40,7 +40,8 @@
         </svg>
         Selecionar Arquivo
       </button>
-      <div class="upload-hint">Colunas: cd_material · cd · saldo · cd_centro_armaz (obrigatórias)</div>
+      <div class="upload-hint">Colunas obrigatórias: cd_material · cd · saldo · cd_centro_armaz<br>
+        Coluna opcional: <strong>disponivel</strong> (se não existir, usa saldo)</div>
       <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none">
     </div>
 
@@ -196,7 +197,7 @@
             <th>Desc. Armazém</th>
             <th class="sortable th-num" data-col="saldo">Saldo <span class="sort-icon"></span></th>
             <th class="th-num">A Devolver</th>
-            <th>Status</th>
+            <th class="th-num">Status</th>
           </tr>
         </thead>
         <tbody id="tbody-estoque"></tbody>
@@ -213,6 +214,12 @@
       <div class="filter-group filter-group--wide">
         <span class="filter-label">Produto / Código</span>
         <input class="filter-input" id="filter-t-produto" type="text" placeholder="Buscar material ou código...">
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">CD Origem</span>
+        <select class="filter-select" id="filter-t-origem">
+          <option value="">Todos</option>
+        </select>
       </div>
       <div class="filter-group">
         <span class="filter-label">CD Destino</span>
@@ -242,7 +249,7 @@
       <div class="transfer-header-icon">⇄</div>
       <div class="transfer-header-text">
         <h3>Sugestões de Transferência entre CDs</h3>
-        <p>Algoritmo considera regras de armazém (ARM 1 · ARM 8 · ARM 28) e excedente real de cada origem.</p>
+        <p>Algoritmo usa coluna <strong>DISPONÍVEL</strong> e considera regras de armazém (ARM 1 · ARM 8 · ARM 28) e excedente real de cada origem.</p>
       </div>
       <div class="transfer-stats">
         <div class="transfer-stat">
@@ -263,14 +270,14 @@
           <tr>
             <th class="sortable" data-col="cd_material">Cód Material <span class="sort-icon"></span></th>
             <th class="sortable" data-col="desc_material">Descrição <span class="sort-icon"></span></th>
-            <th class="sortable th-num th-cd1" data-col="saldo_destino">Saldo Dest. <span class="sort-icon"></span></th>
-            <th>CD Destino</th>
+            <th class="sortable th-num" data-col="disponivel_destino">Disp. Destino <span class="sort-icon"></span></th>
+            <th class="sortable" data-col="cd_destino">CD Destino <span class="sort-icon"></span></th>
             <th>ARM Destino</th>
             <th>Fluxo</th>
-            <th>CD Origem</th>
+            <th class="sortable" data-col="cd_origem">CD Origem <span class="sort-icon"></span></th>
             <th>ARM Origem</th>
-            <th class="th-num">Saldo Orig.</th>
-            <th class="sortable th-num th-transfer" data-col="qtd_sugerida">Qtd Sugerida <span class="sort-icon"></span></th>
+            <th class="sortable th-num" data-col="disponivel_origem">Disp. Origem <span class="sort-icon"></span></th>
+            <th class="sortable th-num" data-col="qtd_sugerida">Qtd Sugerida <span class="sort-icon"></span></th>
             <th class="sortable" data-col="prioridade">Prioridade <span class="sort-icon"></span></th>
           </tr>
         </thead>
@@ -279,20 +286,24 @@
     </div>
     <div class="pagination" id="pagination-transfer"></div>
 
-    <!-- Sem estoque toggle -->
-    <div class="nostock-toggle-bar">
-      <div class="nostock-toggle-info">
-        <span class="nostock-icon">⚠</span>
-        <strong>Sem estoque nos armazéns elegíveis:</strong>
-        <span class="nostock-badge" id="nostock-count">0</span>
-        <span>itens sem origem de transferência possível</span>
-      </div>
-      <button class="nostock-toggle-btn" id="toggle-nostock">▼ Ver Itens Sem Estoque</button>
+    <!-- Seção "Sem Estoque" (toggle) -->
+    <div style="margin-top:32px">
+      <button class="filter-clear" id="toggle-nostock"
+        style="width:100%;justify-content:center;font-size:13px;font-weight:500">
+        ▼ Ver Itens Sem Estoque Disponível (<span id="nostock-count">0</span>)
+      </button>
     </div>
 
-    <div class="nostock-section" id="nostock-section" style="display:none">
-      <div class="table-wrapper" style="max-height:240px">
-        <table class="data-table">
+    <div id="nostock-section" style="display:none;flex-direction:column;gap:16px;margin-top:16px">
+      <div class="transfer-header" style="background:rgba(220,38,38,0.05);border-color:rgba(220,38,38,0.15)">
+        <div class="transfer-header-icon" style="color:var(--danger)">⚠</div>
+        <div class="transfer-header-text">
+          <h3 style="color:var(--danger)">Itens Sem Estoque Disponível</h3>
+          <p>Produtos em armazéns elegíveis (ARM 1, 8, 28) com disponível ≤ 0 — sem possibilidade de transferência.</p>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="table-nostock">
           <thead>
             <tr>
               <th>Cód Material</th>
@@ -300,6 +311,7 @@
               <th>CD</th>
               <th>Armazém</th>
               <th class="th-num">Saldo</th>
+              <th class="th-num">Disponível</th>
             </tr>
           </thead>
           <tbody id="tbody-nostock"></tbody>
@@ -310,7 +322,7 @@
 
   </div><!-- /tab-transfer -->
 
-  <!-- ───── TAB: COMP 1×3×7 ───── -->
+  <!-- ───── TAB: COMP CD1×3×7 ───── -->
   <div class="tab-panel" id="tab-comp1">
 
     <div class="filters-bar">
@@ -424,7 +436,7 @@
             <span style="font-size:18px">📊</span>
             <div>
               <div class="export-option-name">Estoque.csv</div>
-              <div class="export-option-desc">Material · CD · ARM · Saldo · Status</div>
+              <div class="export-option-desc">Material · CD · ARM · Saldo · Disponível · Status</div>
             </div>
           </button>
         </div>
@@ -444,7 +456,7 @@
               <span style="font-size:18px">⇄</span>
               <div>
                 <div class="export-option-name">Transferencias.csv</div>
-                <div class="export-option-desc">Origem · Destino · Qtd · Prioridade</div>
+                <div class="export-option-desc">Origem · Destino · Qtd · Disponível · Prioridade</div>
               </div>
             </button>
             <button class="export-option" id="btn-copy-transfer"

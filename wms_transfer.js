@@ -1,5 +1,5 @@
 /* ============================================================
-   WMS ANALÍTICO — wms.transfer.js
+   WMS ANALÍTICO — wms.transfer.js  [v2.1]
    Algoritmo de sugestões de transferência.
 
    REGRAS DE PAR VÁLIDO (isValidTransferPair):
@@ -10,15 +10,15 @@
    │ Outros       │ Bloqueado — nunca origem                           │
    └──────────────┴────────────────────────────────────────────────────┘
 
-   CÁLCULO DA QUANTIDADE:
-   - need  = 200 − saldo_destino
-   - avail = saldo_origem − 200  (excedente real; doador nunca fica abaixo de 200)
+   CÁLCULO DA QUANTIDADE (USANDO DISPONÍVEL):
+   - need  = 200 − disponivel_destino
+   - avail = disponivel_origem − 200  (excedente real; doador nunca fica abaixo de 200)
    - qty   = ceil( MIN(need, avail) )
    ============================================================ */
 
 function buildTransferSuggestions() {
 
-  /* ── Passo 1: Agrupa saldo por (material + cd + armaz) ── */
+  /* ── Passo 1: Agrupa DISPONÍVEL por (material + cd + armaz) ── */
   const grouped = {};
   WMS_DATA.forEach(r => {
     const key = `${r.cd_material}|||${normalizeCd(r.cd)}|||${normalizeArmaz(r.cd_centro_armaz)}`;
@@ -28,40 +28,43 @@ function buildTransferSuggestions() {
         desc_material:   r.desc_material,
         cd:              normalizeCd(r.cd),
         armaz:           normalizeArmaz(r.cd_centro_armaz),
-        saldo: 0,
+        saldo:           0,
+        disponivel:      0,
       };
     }
-    grouped[key].saldo += r.saldo;
+    grouped[key].saldo      += r.saldo;
+    grouped[key].disponivel += r.disponivel;
   });
 
   const entries = Object.values(grouped);
 
   /* ── Passo 2: Separa destinos e origens candidatas ── */
 
-  // Destinos: não bloqueados com saldo crítico
+  // Destinos: não bloqueados com disponível crítico
   const destinations = entries.filter(e =>
-    !isArmazBlocked(e.armaz) && e.saldo < CRITICAL
+    !isArmazBlocked(e.armaz) && e.disponivel < CRITICAL
   );
 
-  // Origens candidatas: ARM 1, 8 ou 28 com saldo > 0 e excedente real
+  // Origens candidatas: ARM 1, 8 ou 28 com disponível > 0 e excedente real
   const origins = entries.filter(e => {
     const arm = normalizeArmaz(e.armaz);
     if (!['1','8','28'].includes(arm)) return false;
-    if (e.saldo <= 0) return false;
-    return (e.saldo - CRITICAL) > 0; // tem excedente
+    if (e.disponivel <= 0) return false;
+    return (e.disponivel - CRITICAL) > 0; // tem excedente
   });
 
-  /* ── Passo 3: Detecta itens sem saldo nas origens elegíveis ── */
+  /* ── Passo 3: Detecta itens sem estoque disponível nas origens elegíveis ── */
   ZERO_STOCK_DATA = [];
   entries.forEach(e => {
     const arm = normalizeArmaz(e.armaz);
-    if (['1','8','28'].includes(arm) && e.saldo <= 0) {
+    if (['1','8','28'].includes(arm) && e.disponivel <= 0) {
       ZERO_STOCK_DATA.push({
         cd_material:     e.cd_material,
         desc_material:   e.desc_material,
         cd:              e.cd,
         cd_centro_armaz: e.armaz,
         saldo:           e.saldo,
+        disponivel:      e.disponivel,
       });
     }
   });
@@ -81,39 +84,41 @@ function buildTransferSuggestions() {
 
     if (validOrigins.length === 0) return;
 
-    // Melhor doador = maior excedente
-    validOrigins.sort((a, b) => b.saldo - a.saldo);
+    // Melhor doador = maior excedente DISPONÍVEL
+    validOrigins.sort((a, b) => b.disponivel - a.disponivel);
     const orig = validOrigins[0];
 
-    const need  = CRITICAL - dest.saldo;
-    const avail = orig.saldo - CRITICAL;
+    const need  = CRITICAL - dest.disponivel;
+    const avail = orig.disponivel - CRITICAL;
     const qty   = Math.ceil(Math.min(need, avail));
     if (qty <= 0) return;
 
-    const pct      = dest.saldo / CRITICAL;
-    const priority = dest.saldo <= 0 || pct < 0.5 ? 'URGENTE'
-                   : pct < 0.75                    ? 'ALTO'
-                   :                                 'NORMAL';
+    const pct      = dest.disponivel / CRITICAL;
+    const priority = dest.disponivel <= 0 || pct < 0.5 ? 'URGENTE'
+                   : pct < 0.75                         ? 'ALTO'
+                   :                                      'NORMAL';
 
     suggestions.push({
-      cd_material:   dest.cd_material,
-      desc_material: dest.desc_material,
-      cd_destino:    dest.cd,
-      armaz_destino: dest.armaz,
-      saldo_destino: dest.saldo,
-      cd_origem:     orig.cd,
-      armaz_origem:  orig.armaz,
-      saldo_origem:  orig.saldo,
-      qtd_sugerida:  qty,
-      prioridade:    priority,
+      cd_material:        dest.cd_material,
+      desc_material:      dest.desc_material,
+      cd_destino:         dest.cd,
+      armaz_destino:      dest.armaz,
+      saldo_destino:      dest.saldo,
+      disponivel_destino: dest.disponivel,
+      cd_origem:          orig.cd,
+      armaz_origem:       orig.armaz,
+      saldo_origem:       orig.saldo,
+      disponivel_origem:  orig.disponivel,
+      qtd_sugerida:       qty,
+      prioridade:         priority,
     });
   });
 
-  /* ── Passo 5: Ordena por prioridade → menor saldo destino ── */
+  /* ── Passo 5: Ordena por prioridade → menor disponível destino ── */
   suggestions.sort((a, b) => {
     const po = priorityOrder(a.prioridade) - priorityOrder(b.prioridade);
     if (po !== 0) return po;
-    return a.saldo_destino - b.saldo_destino;
+    return a.disponivel_destino - b.disponivel_destino;
   });
 
   return suggestions;
@@ -124,10 +129,11 @@ function buildNoStockItems() {
   WMS_DATA.forEach(r => {
     const arm = normalizeArmaz(r.cd_centro_armaz);
     if (!['1','8','28'].includes(arm)) return;
-    if (!matSaldo[r.cd_material]) matSaldo[r.cd_material] = { desc: r.desc_material, total: 0 };
-    matSaldo[r.cd_material].total += r.saldo;
+    if (!matSaldo[r.cd_material]) matSaldo[r.cd_material] = { desc: r.desc_material, total: 0, disponivel: 0 };
+    matSaldo[r.cd_material].total      += r.saldo;
+    matSaldo[r.cd_material].disponivel += r.disponivel;
   });
   return Object.entries(matSaldo)
-    .filter(([, v]) => v.total <= 0)
-    .map(([mat, v]) => ({ cd_material: mat, desc_material: v.desc, saldo_total: v.total }));
+    .filter(([, v]) => v.disponivel <= 0)
+    .map(([mat, v]) => ({ cd_material: mat, desc_material: v.desc, saldo_total: v.total, disponivel_total: v.disponivel }));
 }

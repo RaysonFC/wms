@@ -1,5 +1,5 @@
 /* ============================================================
-   WMS ANALÍTICO — wms.transferencias.js
+   WMS ANALÍTICO — wms.transferencias.js  [v2.1]
    Aba "Transferências" — filtros, render, ordenação e sem estoque
    Regra: somente cd_centro_armaz ∈ {1, 21, 28} participam.
    ============================================================ */
@@ -9,15 +9,17 @@ const stateNoStock = { page: 1 };
 
 /* ---- Filtros da tabela principal ---- */
 function getTransferFiltered() {
-  const produto  = document.getElementById('filter-t-produto').value.toLowerCase().trim();
-  const dest     = document.getElementById('filter-t-dest').value;
-  const priority = document.getElementById('filter-t-priority').value;
+  const produto    = document.getElementById('filter-t-produto').value.toLowerCase().trim();
+  const cdOrigem   = document.getElementById('filter-t-origem').value;
+  const cdDestino  = document.getElementById('filter-t-dest').value;
+  const priority   = document.getElementById('filter-t-priority').value;
 
   return TRANSFER_DATA.filter(r => {
-    if (produto  && !r.cd_material.toLowerCase().includes(produto)
-                 && !r.desc_material.toLowerCase().includes(produto)) return false;
-    if (dest     && r.cd_destino !== dest)                            return false;
-    if (priority && r.prioridade !== priority)                        return false;
+    if (produto    && !r.cd_material.toLowerCase().includes(produto)
+                   && !r.desc_material.toLowerCase().includes(produto)) return false;
+    if (cdOrigem   && r.cd_origem  !== cdOrigem)                        return false;
+    if (cdDestino  && r.cd_destino !== cdDestino)                       return false;
+    if (priority   && r.prioridade !== priority)                        return false;
     return true;
   });
 }
@@ -40,7 +42,7 @@ function renderTransfer() {
         return `<tr class="${rowCls}">
           <td><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">${r.cd_material}</code></td>
           <td title="${r.desc_material}">${r.desc_material}</td>
-          <td class="td-num">${fmtNum(r.saldo_destino)}</td>
+          <td class="td-num">${fmtNum(r.disponivel_destino)}</td>
           <td>${cdBadge(r.cd_destino)}</td>
           <td style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">ARM ${r.armaz_destino}</td>
           <td>
@@ -52,7 +54,7 @@ function renderTransfer() {
           </td>
           <td>${cdBadge(r.cd_origem)}</td>
           <td style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">ARM ${r.armaz_origem}</td>
-          <td class="td-num">${fmtNum(r.saldo_origem)}</td>
+          <td class="td-num">${fmtNum(r.disponivel_origem)}</td>
           <td class="td-num">
             <span class="transfer-badge">⇄ ${r.qtd_sugerida.toLocaleString('pt-BR')}</span>
           </td>
@@ -85,13 +87,14 @@ function renderNoStock() {
   const pg    = data.slice(start, start + PAGE_SIZE);
 
   tbody.innerHTML = pg.length === 0
-    ? '<tr><td colspan="5" class="empty-state"><p>Nenhum item sem estoque nos armazéns elegíveis.</p></td></tr>'
+    ? '<tr><td colspan="6" class="empty-state"><p>Nenhum item sem estoque nos armazéns elegíveis.</p></td></tr>'
     : pg.map(r => `<tr class="row-critical">
         <td><code style="font-family:var(--mono);font-size:11px;color:var(--danger)">${r.cd_material}</code></td>
         <td title="${r.desc_material}">${r.desc_material}</td>
         <td>${cdBadge(r.cd)}</td>
         <td style="font-family:var(--mono);font-size:12px;color:var(--text-muted)">ARM ${r.cd_centro_armaz}</td>
         <td class="td-num"><span class="val-critical">${r.saldo.toLocaleString('pt-BR')}</span></td>
+        <td class="td-num"><span class="val-critical">${r.disponivel.toLocaleString('pt-BR')}</span></td>
       </tr>`).join('');
 
   renderPagination('pagination-nostock', data.length, stateNoStock.page,
@@ -101,7 +104,7 @@ function renderNoStock() {
 
 /* ---- Init ---- */
 function initTransfer() {
-  ['filter-t-produto', 'filter-t-dest', 'filter-t-priority'].forEach(id => {
+  ['filter-t-produto', 'filter-t-origem', 'filter-t-dest', 'filter-t-priority'].forEach(id => {
     document.getElementById(id).addEventListener('input',  () => {
       state.transfer.page = 1;
       stateNoStock.page   = 1;
@@ -117,7 +120,7 @@ function initTransfer() {
   });
 
   document.getElementById('clear-t-filters').addEventListener('click', () => {
-    ['filter-t-produto', 'filter-t-dest', 'filter-t-priority'].forEach(id => {
+    ['filter-t-produto', 'filter-t-origem', 'filter-t-dest', 'filter-t-priority'].forEach(id => {
       document.getElementById(id).value = '';
     });
     state.transfer.page = 1;

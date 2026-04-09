@@ -1,5 +1,5 @@
 /* ============================================================
-   WMS ANALÍTICO — wms_helpers.js  [v2.0]
+   WMS ANALÍTICO — wms_helpers.js  [v2.1]
    Funções utilitárias compartilhadas + exportação
    ============================================================ */
 
@@ -156,11 +156,11 @@ function downloadBlob(content, filename, mime = 'text/csv;charset=utf-8;') {
 function exportEstoqueCSV(filtered = false) {
   const data  = filtered ? getEstoqueFiltered() : WMS_DATA;
   const rows  = [
-    ['Cód Material', 'Descrição', 'CD', 'Armazém', 'Desc Armazém', 'Saldo', 'A Devolver', 'Status'].join(';'),
+    ['Cód Material', 'Descrição', 'CD', 'Armazém', 'Desc Armazém', 'Saldo', 'Disponível', 'A Devolver', 'Status'].join(';'),
     ...data.map(r => [
       r.cd_material, r.desc_material, r.cd, r.cd_centro_armaz,
-      r.desc_armaz, r.saldo, r.devolver ?? '',
-      r.saldo < CRITICAL ? 'CRÍTICO' : r.saldo < CRITICAL * WARN_MULT ? 'ATENÇÃO' : 'OK'
+      r.desc_armaz, r.saldo, r.disponivel, r.devolver ?? '',
+      r.disponivel < CRITICAL ? 'CRÍTICO' : r.disponivel < CRITICAL * WARN_MULT ? 'ATENÇÃO' : 'OK'
     ].map(csvEscape).join(';'))
   ];
   const suffix = filtered ? '_filtrado' : '_completo';
@@ -172,11 +172,11 @@ function exportEstoqueCSV(filtered = false) {
 function exportTransferCSV(filtered = false) {
   const data  = filtered ? getTransferFiltered() : TRANSFER_DATA;
   const rows  = [
-    ['Cód Material','Descrição','CD Destino','ARM Destino','Saldo Destino','CD Origem','ARM Origem','Saldo Origem','Qtd Sugerida','Prioridade'].join(';'),
+    ['Cód Material','Descrição','CD Destino','ARM Destino','Saldo Destino','Disponível Destino','CD Origem','ARM Origem','Saldo Origem','Disponível Origem','Qtd Sugerida','Prioridade'].join(';'),
     ...data.map(r => [
       r.cd_material, r.desc_material,
-      r.cd_destino, r.armaz_destino, r.saldo_destino,
-      r.cd_origem,  r.armaz_origem,  r.saldo_origem,
+      r.cd_destino, r.armaz_destino, r.saldo_destino, r.disponivel_destino,
+      r.cd_origem,  r.armaz_origem,  r.saldo_origem,  r.disponivel_origem,
       r.qtd_sugerida, r.prioridade
     ].map(csvEscape).join(';'))
   ];
@@ -223,8 +223,8 @@ function exportComp2CSV() {
 function exportResumoCSV() {
   const urgentes = TRANSFER_DATA.filter(r => r.prioridade === 'URGENTE').length;
   const altos    = TRANSFER_DATA.filter(r => r.prioridade === 'ALTO').length;
-  const criticos = WMS_DATA.filter(r => r.saldo < CRITICAL).length;
-  const atencao  = WMS_DATA.filter(r => r.saldo >= CRITICAL && r.saldo < CRITICAL * WARN_MULT).length;
+  const criticos = WMS_DATA.filter(r => r.disponivel < CRITICAL).length;
+  const atencao  = WMS_DATA.filter(r => r.disponivel >= CRITICAL && r.disponivel < CRITICAL * WARN_MULT).length;
 
   const linhas = [
     ['RESUMO WMS ANALÍTICO', ''].join(';'),
@@ -232,8 +232,8 @@ function exportResumoCSV() {
     ['', ''].join(';'),
     ['ESTOQUE', ''].join(';'),
     ['Total de itens', WMS_DATA.length].join(';'),
-    ['Itens críticos (< 200)', criticos].join(';'),
-    ['Itens em atenção (200–300)', atencao].join(';'),
+    ['Itens críticos (< 200 disponível)', criticos].join(';'),
+    ['Itens em atenção (200–300 disponível)', atencao].join(';'),
     ['', ''].join(';'),
     ['TRANSFERÊNCIAS', ''].join(';'),
     ['Total de sugestões', TRANSFER_DATA.length].join(';'),
@@ -252,11 +252,11 @@ async function copyTransferToClipboard() {
   const data = getTransferFiltered();
   if (!data.length) { showToast('Sem dados para copiar.', 'error'); return; }
 
-  const header = ['Cód Material','Descrição','CD Destino','ARM Destino','Saldo Destino',
-                  'CD Origem','ARM Origem','Saldo Origem','Qtd Sugerida','Prioridade'].join('\t');
+  const header = ['Cód Material','Descrição','CD Destino','ARM Destino','Saldo Destino','Disponível Destino',
+                  'CD Origem','ARM Origem','Saldo Origem','Disponível Origem','Qtd Sugerida','Prioridade'].join('\t');
   const rows   = data.map(r =>
-    [r.cd_material, r.desc_material, r.cd_destino, r.armaz_destino, r.saldo_destino,
-     r.cd_origem, r.armaz_origem, r.saldo_origem, r.qtd_sugerida, r.prioridade].join('\t')
+    [r.cd_material, r.desc_material, r.cd_destino, r.armaz_destino, r.saldo_destino, r.disponivel_destino,
+     r.cd_origem, r.armaz_origem, r.saldo_origem, r.disponivel_origem, r.qtd_sugerida, r.prioridade].join('\t')
   );
   const tsv = [header, ...rows].join('\n');
 

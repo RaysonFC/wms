@@ -1,5 +1,5 @@
 /* ============================================================
-   WMS ANALÍTICO — wms_app.js  [v2.0]
+   WMS ANALÍTICO — wms_app.js  [v2.1]
    Inicialização do app, tabs, badges e modal de exportação
    ============================================================ */
 
@@ -29,9 +29,15 @@ function populateCdFilter() {
   sel.innerHTML = '<option value="">Todos</option>';
   cds.forEach(cd => sel.innerHTML += `<option value="${cd}">CD ${cd}</option>`);
 
-  const tsel = document.getElementById('filter-t-dest');
-  tsel.innerHTML = '<option value="">Todos</option>';
-  cds.forEach(cd => tsel.innerHTML += `<option value="${cd}">CD ${cd}</option>`);
+  // Filtro CD Origem nas transferências
+  const tselOrigem = document.getElementById('filter-t-origem');
+  tselOrigem.innerHTML = '<option value="">Todos</option>';
+  cds.forEach(cd => tselOrigem.innerHTML += `<option value="${cd}">CD ${cd}</option>`);
+
+  // Filtro CD Destino nas transferências
+  const tselDest = document.getElementById('filter-t-dest');
+  tselDest.innerHTML = '<option value="">Todos</option>';
+  cds.forEach(cd => tselDest.innerHTML += `<option value="${cd}">CD ${cd}</option>`);
 
   document.getElementById('badge-cds').textContent = cds.length;
 }
@@ -57,7 +63,7 @@ function populateArmazFilter(cdFilter = '') {
 
 /* ── Badges de cabeçalho ── */
 function updateBadges() {
-  const critical = WMS_DATA.filter(r => r.saldo < CRITICAL).length;
+  const critical = WMS_DATA.filter(r => r.disponivel < CRITICAL).length;
   const urgent   = TRANSFER_DATA.filter(r => r.prioridade === 'URGENTE').length;
 
   document.getElementById('badge-total').textContent    = WMS_DATA.length.toLocaleString('pt-BR');

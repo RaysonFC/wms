@@ -1,5 +1,5 @@
 /* ============================================================
-   WMS ANALÍTICO — wms_upload.js  [v2.0]
+   WMS ANALÍTICO — wms_upload.js  [v2.1]
    Upload de Excel/CSV com drag-drop e validação melhorada.
    Usa SheetJS (xlsx) para parsing.
    ============================================================ */
@@ -131,8 +131,9 @@
             cd:              String(row[idxMap.cd]              ?? '').trim(),
             cd_centro_armaz: String(row[idxMap.cd_centro_armaz] ?? '').trim(),
             saldo:           num(row[idxMap.saldo]),
-            desc_armaz:      idxMap.desc_armaz   !== -1 ? String(row[idxMap.desc_armaz]   ?? '').trim() : '',
-            devolver:        idxMap.devolver      !== -1 ? num(row[idxMap.devolver])                    : null,
+            disponivel:      idxMap.disponivel !== -1 ? num(row[idxMap.disponivel]) : num(row[idxMap.saldo]),
+            desc_armaz:      idxMap.desc_armaz !== -1 ? String(row[idxMap.desc_armaz] ?? '').trim() : '',
+            devolver:        idxMap.devolver   !== -1 ? num(row[idxMap.devolver])                   : null,
           }))
           .filter(r => r.cd_material && !r.cd_material.startsWith('900'));
 
