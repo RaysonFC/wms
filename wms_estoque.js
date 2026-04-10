@@ -13,10 +13,15 @@ function getEstoqueFiltered() {
   return WMS_DATA.filter(r => {
     if (cd     && normalizeCd(r.cd) !== normalizeCd(cd))                                                            return false;
     if (armaz  && normalizeArmaz(r.cd_centro_armaz) !== normalizeArmaz(armaz))                                            return false;
-    if (produto && !r.cd_material.toLowerCase().includes(produto)
-               && !r.desc_material.toLowerCase().includes(produto))                       return false;
-    if (saldo === 'critico' && r.saldo >= CRITICAL)                                       return false;
-    if (saldo === 'normal'  && r.saldo  < CRITICAL)                                       return false;
+    // Busca por código ou descrição (case-insensitive)
+    if (produto) {
+      const searchInCode = (r.cd_material || '').toLowerCase().includes(produto);
+      const searchInDesc = (r.desc_material || '').toLowerCase().includes(produto);
+      if (!searchInCode && !searchInDesc) return false;
+    }
+    // Usa DISPONÍVEL para filtro de status (não saldo)
+    if (saldo === 'critico' && (r.disponivel === null || r.disponivel >= CRITICAL))  return false;
+    if (saldo === 'normal'  && (r.disponivel !== null && r.disponivel  < CRITICAL))    return false;
     return true;
   });
 }
@@ -28,29 +33,30 @@ function renderEstoque() {
   const page     = filtered.slice(start, start + PAGE_SIZE);
   const tbody    = document.getElementById('tbody-estoque');
 
-  /* Cards de resumo */
-  const totalSaldo = filtered.reduce((s, r) => s + r.saldo, 0);
-  const critCount  = filtered.filter(r => r.saldo < CRITICAL).length;
+  /* Cards de resumo - USA DISPONÍVEL */
+  const totalDisp = filtered.reduce((s, r) => s + (r.disponivel || 0), 0);
+  const critCount  = filtered.filter(r => r.disponivel !== null && r.disponivel < CRITICAL).length;
   document.getElementById('sc-total').textContent       = filtered.length.toLocaleString('pt-BR');
   document.getElementById('sc-critical').textContent    = critCount.toLocaleString('pt-BR');
   document.getElementById('sc-ok').textContent          = (filtered.length - critCount).toLocaleString('pt-BR');
-  document.getElementById('sc-saldo-total').textContent = totalSaldo.toLocaleString('pt-BR');
+  document.getElementById('sc-saldo-total').textContent = totalDisp.toLocaleString('pt-BR');
   document.getElementById('estoque-summary').style.display = filtered.length > 0 ? 'flex' : 'none';
 
   /* Linhas da tabela */
   tbody.innerHTML = filtered.length === 0
     ? '<tr><td colspan="8" class="empty-state"><p>Nenhum resultado encontrado.</p></td></tr>'
     : page.map(r => {
-        const rowCls = r.saldo < CRITICAL ? 'row-critical' : r.saldo < CRITICAL * WARN_MULT ? 'row-warn' : '';
+        const disp = r.disponivel !== null ? r.disponivel : r.saldo;
+        const rowCls = disp < CRITICAL ? 'row-critical' : disp < CRITICAL * WARN_MULT ? 'row-warn' : '';
         return `<tr class="${rowCls}">
           <td><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">${r.cd_material || '—'}</code></td>
           <td title="${r.desc_material}">${r.desc_material || '—'}</td>
           <td>${cdBadge(r.cd)}</td>
           <td style="font-family:var(--mono);font-size:12px">${r.cd_centro_armaz || '—'}</td>
           <td title="${r.desc_armaz}" style="color:var(--text-muted)">${r.desc_armaz || '—'}</td>
-          <td class="td-num">${fmtNum(r.saldo)}</td>
+          <td class="td-num">${fmtNum(disp)}</td>
           <td class="td-num" style="color:var(--text-muted)">${fmt(r.devolver)}</td>
-          <td class="td-num">${saldoStatus(r.saldo)}</td>
+          <td class="td-num">${saldoStatus(disp)}</td>
         </tr>`;
       }).join('');
 

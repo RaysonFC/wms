@@ -9,6 +9,16 @@ function launchApp(filename) {
   document.getElementById('app').style.display = 'flex';
   document.getElementById('brand-file').textContent = filename;
 
+  // Debug: mostrar se disponível foi carregado
+  const primeiroItem = WMS_DATA[0];
+  if (primeiroItem) {
+    console.log('Primeiro item carregado:', {
+      cd_material: primeiroItem.cd_material,
+      saldo: primeiroItem.saldo,
+      disponivel: primeiroItem.disponivel
+    });
+  }
+
   populateCdFilter();
   populateArmazFilter();
   updateBadges();
@@ -63,7 +73,7 @@ function populateArmazFilter(cdFilter = '') {
 
 /* ── Badges de cabeçalho ── */
 function updateBadges() {
-  const critical = WMS_DATA.filter(r => r.disponivel < CRITICAL).length;
+  const critical = WMS_DATA.filter(r => r.disponivel !== null && r.disponivel < CRITICAL).length;
   const urgent   = TRANSFER_DATA.filter(r => r.prioridade === 'URGENTE').length;
 
   document.getElementById('badge-total').textContent    = WMS_DATA.length.toLocaleString('pt-BR');

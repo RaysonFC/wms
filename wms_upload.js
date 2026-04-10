@@ -114,6 +114,14 @@
           idxMap[field] = findCol(headers, aliases);
         }
 
+        // Debug: mostrar se disponível foi detectado
+        console.log('Índices de coluna detectados:', {
+          saldo_idx: idxMap.saldo,
+          disponivel_idx: idxMap.disponivel,
+          saldo_header: headers[idxMap.saldo],
+          disponivel_header: headers[idxMap.disponivel]
+        });
+
         /* Validação: campos obrigatórios */
         const required = ['cd_material', 'cd', 'saldo'];
         const missing  = required.filter(f => idxMap[f] === -1);
@@ -125,16 +133,20 @@
         setProgress(90, 'Construindo dataset...');
 
         WMS_DATA = dataRows
-          .map(row => ({
-            cd_material:     String(row[idxMap.cd_material]     ?? '').trim(),
-            desc_material:   String(row[idxMap.desc_material]   ?? '').trim(),
-            cd:              String(row[idxMap.cd]              ?? '').trim(),
-            cd_centro_armaz: String(row[idxMap.cd_centro_armaz] ?? '').trim(),
-            saldo:           num(row[idxMap.saldo]),
-            disponivel:      idxMap.disponivel !== -1 ? num(row[idxMap.disponivel]) : num(row[idxMap.saldo]),
-            desc_armaz:      idxMap.desc_armaz !== -1 ? String(row[idxMap.desc_armaz] ?? '').trim() : '',
-            devolver:        idxMap.devolver   !== -1 ? num(row[idxMap.devolver])                   : null,
-          }))
+          .map(row => {
+            const disponivel_raw = idxMap.disponivel !== -1 ? num(row[idxMap.disponivel]) : null;
+            return {
+              cd_material:     String(row[idxMap.cd_material]     ?? '').trim(),
+              desc_material:   String(row[idxMap.desc_material]   ?? '').trim(),
+              cd:              String(row[idxMap.cd]              ?? '').trim(),
+              cd_centro_armaz: String(row[idxMap.cd_centro_armaz] ?? '').trim(),
+              saldo:           num(row[idxMap.saldo]),
+              // Se disponível foi encontrado, usa; senão, copia do saldo
+              disponivel:      disponivel_raw !== null ? disponivel_raw : num(row[idxMap.saldo]),
+              desc_armaz:      idxMap.desc_armaz !== -1 ? String(row[idxMap.desc_armaz] ?? '').trim() : '',
+              devolver:        idxMap.devolver   !== -1 ? num(row[idxMap.devolver])                   : null,
+            };
+          })
           .filter(r => r.cd_material && !r.cd_material.startsWith('900'));
 
         if (!WMS_DATA.length) {

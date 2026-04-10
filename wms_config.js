@@ -74,8 +74,8 @@ const COL_MAP = {
   desc_material:   ['descmaterial','desc_material','descricao','description','nome','desc'],
   cd:              ['cd_unidade_de_n','cd_unidade_de_negocio','cd_unidade','unidade_de_negocio','unidade_negocio','cd'],
   cd_centro_armaz: ['cd_centro_armaz','cdcentroarmaz','centro_armazenagem','centro_armaz','armazem_local','local_armaz','armaz'],
-  saldo:           ['saldo','qtd','quantidade','stock','quantity','balance'],
-  disponivel:      ['disponivel','disponível','disp','available','stock_disponivel'],
+  saldo:           ['saldo','qtd','quantidade','stock','quantity','balance','estoque'],
+  disponivel:      ['disponivel','disponível','disp','demanda','disponibilidade','qtd_disponivel','saldo_disponivel'],
   desc_armaz:      ['descarmaz','desc_armaz','descricao_armaz','desc_armazem','descricaoarmaz'],
   devolver:        ['devolver','qtd_devolver','return','retorno'],
 };
