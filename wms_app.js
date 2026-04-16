@@ -3,6 +3,20 @@
    Inicialização do app, tabs, badges e modal de exportação
    ============================================================ */
 
+/* ── Atualizar timestamp da última carga ── */
+function updateLoadTimestamp() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  const timeStr = `${hh}:${mm}:${ss}`;
+  
+  const timestamp = document.getElementById('header-timestamp');
+  if (timestamp) {
+    timestamp.textContent = timeStr;
+  }
+}
+
 /* ── Lançamento após upload ── */
 function launchApp(filename) {
   document.getElementById('upload-screen').style.display = 'none';
@@ -17,6 +31,13 @@ function launchApp(filename) {
       saldo: primeiroItem.saldo,
       disponivel: primeiroItem.disponivel
     });
+  }
+
+  // Mostra botão recarregar + timestamp
+  const reloadGroup = document.getElementById('reload-group');
+  if (reloadGroup) {
+    reloadGroup.style.display = 'flex';
+    updateLoadTimestamp();
   }
 
   populateCdFilter();
@@ -55,7 +76,7 @@ function populateCdFilter() {
 function populateArmazFilter(cdFilter = '') {
   const arms = [...new Set(
     WMS_DATA
-      .filter(r => !cdFilter || r.cd === cdFilter)
+      .filter(r => !cdFilter || normalizeCd(r.cd) === normalizeCd(cdFilter))
       .map(r => normalizeArmaz(r.cd_centro_armaz))
       .filter(Boolean)
   )].sort((a, b) => +a - +b || a.localeCompare(b));
@@ -64,7 +85,8 @@ function populateArmazFilter(cdFilter = '') {
   const cur = sel.value;
   sel.innerHTML = '<option value="">Todos</option>';
   arms.forEach(arm => {
-    const desc  = WMS_DATA.find(r => r.cd_centro_armaz === arm)?.desc_armaz || '';
+    // busca descrição usando normalização para garantir match
+    const desc = WMS_DATA.find(r => normalizeArmaz(r.cd_centro_armaz) === arm)?.desc_armaz || '';
     const label = desc ? `${arm} — ${desc}` : arm;
     sel.innerHTML += `<option value="${arm}">${label}</option>`;
   });
@@ -73,7 +95,7 @@ function populateArmazFilter(cdFilter = '') {
 
 /* ── Badges de cabeçalho ── */
 function updateBadges() {
-  const critical = WMS_DATA.filter(r => r.disponivel !== null && r.disponivel < CRITICAL).length;
+  const critical = WMS_DATA.filter(r => getDisponivel(r) < CRITICAL).length;
   const urgent   = TRANSFER_DATA.filter(r => r.prioridade === 'URGENTE').length;
 
   document.getElementById('badge-total').textContent    = WMS_DATA.length.toLocaleString('pt-BR');
@@ -98,11 +120,34 @@ document.querySelectorAll('.tab').forEach(tab => {
 document.getElementById('back-btn').addEventListener('click', () => {
   if (confirm('Voltar para o upload? Os dados atuais serão perdidos.')) {
     WMS_DATA = []; TRANSFER_DATA = []; ZERO_STOCK_DATA = [];
+    window._lastFile = null;
+    const rg = document.getElementById('reload-group');
+    if (rg) rg.style.display = 'none';
     document.getElementById('app').style.display = 'none';
     document.getElementById('upload-screen').style.display = 'flex';
     document.getElementById('upload-progress').style.display = 'none';
     document.getElementById('upload-fill').style.width = '0%';
     document.getElementById('upload-error').style.display = 'none';
+  }
+});
+
+/* ── Botão Recarregar ── */
+document.getElementById('btn-reload').addEventListener('click', async () => {
+  if (!window._lastFile && !window._fileHandle) return;
+  const btn = document.getElementById('btn-reload');
+  const original = btn.innerHTML;
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Carregando...';
+  btn.style.opacity = '0.7';
+  btn.disabled = true;
+  try {
+    await window.reloadLastFile();
+  } finally {
+    setTimeout(() => {
+      btn.innerHTML = original;
+      btn.style.opacity = '';
+      btn.disabled = false;
+      updateLoadTimestamp(); // Atualiza timestamp após recarregar
+    }, 800);
   }
 });
 

@@ -75,12 +75,23 @@
         <span class="brand-wms" style="font-size:13px;letter-spacing:2px">ANÁLISE DE ESTOQUE</span>
         <span class="brand-sep">·</span>
         
-        <span class="brand-sep">·</span>
         <span class="brand-file" id="brand-file"></span>
       </div>
     </div>
 
     <div style="display:flex;align-items:center;gap:10px">
+      <!-- Reload button + timestamp (visível só após carregar arquivo) -->
+      <div style="display:none;align-items:center;gap:8px" id="reload-group">
+        <button class="header-reload-btn" id="btn-reload" title="Recarregar o mesmo arquivo do disco">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+          Recarregar
+        </button>
+        <span class="header-timestamp" id="header-timestamp" title="Hora da última atualização"></span>
+      </div>
+
       <!-- Export button -->
       <button class="header-export-btn" id="btn-export-header">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -164,29 +175,32 @@
       <button class="filter-clear" id="clear-filters">✕ Limpar</button>
     </div>
 
-    <!-- Summary cards -->
-    <div class="summary-row" id="estoque-summary" style="display:none">
-      <div class="summary-card sc-total">
-        <div class="summary-card-label">Total filtrado</div>
-        <div class="summary-card-num" id="sc-total">—</div>
+    <!-- Summary strip -->
+    <div class="summary-strip" id="estoque-summary" style="display:none">
+      <div class="ss-item sc-total">
+        <span class="ss-label">Total filtrado</span>
+        <span class="ss-num" id="sc-total">—</span>
       </div>
-      <div class="summary-card sc-critical">
-        <div class="summary-card-label">Críticos</div>
-        <div class="summary-card-num" id="sc-critical">—</div>
-        <div class="summary-card-sub">saldo &lt; 200</div>
+      <div class="ss-sep"></div>
+      <div class="ss-item sc-critical">
+        <span class="ss-label">Críticos <span style="opacity:.6;font-size:10px">&lt;200</span></span>
+        <span class="ss-num" id="sc-critical">—</span>
       </div>
-      <div class="summary-card sc-ok">
-        <div class="summary-card-label">OK</div>
-        <div class="summary-card-num" id="sc-ok">—</div>
+      <div class="ss-sep"></div>
+      <div class="ss-item sc-ok">
+        <span class="ss-label">OK</span>
+        <span class="ss-num" id="sc-ok">—</span>
       </div>
-      <div class="summary-card sc-total" style="border-right:none">
-        <div class="summary-card-label">Saldo total</div>
-        <div class="summary-card-num" id="sc-saldo-total">—</div>
+      <div class="ss-sep"></div>
+      <div class="ss-item">
+        <span class="ss-label">Saldo disponível total</span>
+        <span class="ss-num" id="sc-saldo-total">—</span>
       </div>
     </div>
 
     <!-- Table -->
     <div class="table-wrapper">
+      <div class="table-scroll">
       <table class="data-table" id="table-estoque">
         <thead>
           <tr>
@@ -194,16 +208,17 @@
             <th class="sortable" data-col="desc_material">Descrição <span class="sort-icon"></span></th>
             <th class="sortable" data-col="cd">CD <span class="sort-icon"></span></th>
             <th class="sortable" data-col="cd_centro_armaz">Armazém <span class="sort-icon"></span></th>
-            <th>Desc. Armazém</th>
             <th class="sortable th-num" data-col="saldo">Saldo <span class="sort-icon"></span></th>
-            <th class="th-num">A Devolver</th>
+            <th class="sortable th-num" data-col="demanda">Demanda <span class="sort-icon"></span></th>
+            <th class="sortable th-num" data-col="disponivel">Disponível <span class="sort-icon"></span></th>
             <th class="th-num">Status</th>
           </tr>
         </thead>
         <tbody id="tbody-estoque"></tbody>
       </table>
+      </div>
+      <div class="pagination" id="pagination-estoque"></div>
     </div>
-    <div class="pagination" id="pagination-estoque"></div>
   </div><!-- /tab-estoque -->
 
   <!-- ───── TAB: TRANSFERÊNCIAS ───── -->
@@ -244,27 +259,23 @@
       </button>
     </div>
 
-    <!-- Transfer header -->
-    <div class="transfer-header">
-      <div class="transfer-header-icon">⇄</div>
-      <div class="transfer-header-text">
-        <h3>Sugestões de Transferência entre CDs</h3>
-        <p>Algoritmo usa coluna <strong>DISPONÍVEL</strong> e considera regras de armazém (ARM 1 · ARM 8 · ARM 28) e excedente real de cada origem.</p>
-      </div>
-      <div class="transfer-stats">
-        <div class="transfer-stat">
-          <div class="transfer-stat-num" id="ts-count">—</div>
-          <div class="transfer-stat-label">Sugestões</div>
-        </div>
-        <div class="transfer-stat">
-          <div class="transfer-stat-num" style="color:var(--danger)" id="ts-urgent">—</div>
-          <div class="transfer-stat-label">Urgentes</div>
-        </div>
+    <!-- Transfer strip -->
+    <div class="transfer-strip">
+      <span class="ts-icon">⇄</span>
+      <span class="ts-title">Sugestões de Transferência entre CDs</span>
+      <span class="ts-desc">Usa coluna <strong>DISPONÍVEL</strong> · regras ARM 1 · ARM 8 · ARM 28</span>
+      <div class="ts-stats">
+        <span class="ts-stat-num" id="ts-count">—</span>
+        <span class="ts-stat-label">sugestões</span>
+        <span class="ts-sep">·</span>
+        <span class="ts-stat-num" style="color:var(--danger)" id="ts-urgent">—</span>
+        <span class="ts-stat-label">urgentes</span>
       </div>
     </div>
 
     <!-- Table -->
     <div class="table-wrapper">
+      <div class="table-scroll">
       <table class="data-table" id="table-transfer">
         <thead>
           <tr>
@@ -283,8 +294,9 @@
         </thead>
         <tbody id="tbody-transfer"></tbody>
       </table>
+      </div>
+      <div class="pagination" id="pagination-transfer"></div>
     </div>
-    <div class="pagination" id="pagination-transfer"></div>
 
     <!-- Seção "Sem Estoque" (toggle) -->
     <div style="margin-top:32px">
@@ -346,6 +358,7 @@
     </div>
 
     <div class="table-wrapper">
+      <div class="table-scroll">
       <table class="data-table" id="table-comp1">
         <thead>
           <tr>
@@ -360,8 +373,9 @@
         </thead>
         <tbody id="tbody-comp1"></tbody>
       </table>
+      </div>
+      <div class="pagination" id="pagination-comp1"></div>
     </div>
-    <div class="pagination" id="pagination-comp1"></div>
   </div><!-- /tab-comp1 -->
 
   <!-- ───── TAB: COMP 1×6 ARM28 ───── -->
@@ -388,6 +402,7 @@
     </div>
 
     <div class="table-wrapper">
+      <div class="table-scroll">
       <table class="data-table" id="table-comp2">
         <thead>
           <tr>
@@ -401,8 +416,9 @@
         </thead>
         <tbody id="tbody-comp2"></tbody>
       </table>
+      </div>
+      <div class="pagination" id="pagination-comp2"></div>
     </div>
-    <div class="pagination" id="pagination-comp2"></div>
   </div><!-- /tab-comp2 -->
 
 </div><!-- /app -->

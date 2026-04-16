@@ -1,6 +1,6 @@
 /* ============================================================
-   WMS ANALÍTICO — wms.estoque.js
-   Aba "Estoque Geral" — filtros, render e ordenação
+   WMS ANALÍTICO — wms_estoque.js  [v3.0]
+   Aba "Estoque Geral" — usa DISPONIVEL como fonte principal obrigatória
    ============================================================ */
 
 /* ---- Filtros ---- */
@@ -19,9 +19,8 @@ function getEstoqueFiltered() {
       const searchInDesc = (r.desc_material || '').toLowerCase().includes(produto);
       if (!searchInCode && !searchInDesc) return false;
     }
-    // Usa DISPONÍVEL para filtro de status (não saldo)
-    if (saldo === 'critico' && (r.disponivel === null || r.disponivel >= CRITICAL))  return false;
-    if (saldo === 'normal'  && (r.disponivel !== null && r.disponivel  < CRITICAL))    return false;
+    if (saldo === 'critico' && getDisponivel(r) >= CRITICAL)  return false;
+    if (saldo === 'normal'  && getDisponivel(r)  < CRITICAL)  return false;
     return true;
   });
 }
@@ -34,8 +33,8 @@ function renderEstoque() {
   const tbody    = document.getElementById('tbody-estoque');
 
   /* Cards de resumo - USA DISPONÍVEL */
-  const totalDisp = filtered.reduce((s, r) => s + (r.disponivel || 0), 0);
-  const critCount  = filtered.filter(r => r.disponivel !== null && r.disponivel < CRITICAL).length;
+  const totalDisp  = filtered.reduce((s, r) => s + getDisponivel(r), 0);
+  const critCount  = filtered.filter(r => getDisponivel(r) < CRITICAL).length;
   document.getElementById('sc-total').textContent       = filtered.length.toLocaleString('pt-BR');
   document.getElementById('sc-critical').textContent    = critCount.toLocaleString('pt-BR');
   document.getElementById('sc-ok').textContent          = (filtered.length - critCount).toLocaleString('pt-BR');
@@ -44,18 +43,20 @@ function renderEstoque() {
 
   /* Linhas da tabela */
   tbody.innerHTML = filtered.length === 0
-    ? '<tr><td colspan="8" class="empty-state"><p>Nenhum resultado encontrado.</p></td></tr>'
+    ? '<tr><td colspan="9" class="empty-state"><p>Nenhum resultado encontrado.</p></td></tr>'
     : page.map(r => {
-        const disp = r.disponivel !== null ? r.disponivel : r.saldo;
+        const disp = getDisponivel(r);
+        const saldo = r.saldo || 0;
+        const demanda = saldo - disp; // Demanda = Saldo - Disponível
         const rowCls = disp < CRITICAL ? 'row-critical' : disp < CRITICAL * WARN_MULT ? 'row-warn' : '';
         return `<tr class="${rowCls}">
           <td><code style="font-family:var(--mono);font-size:11px;color:var(--accent)">${r.cd_material || '—'}</code></td>
           <td title="${r.desc_material}">${r.desc_material || '—'}</td>
           <td>${cdBadge(r.cd)}</td>
           <td style="font-family:var(--mono);font-size:12px">${r.cd_centro_armaz || '—'}</td>
-          <td title="${r.desc_armaz}" style="color:var(--text-muted)">${r.desc_armaz || '—'}</td>
+          <td class="td-num">${fmtNum(saldo)}</td>
+          <td class="td-num">${fmtNum(demanda)}</td>
           <td class="td-num">${fmtNum(disp)}</td>
-          <td class="td-num" style="color:var(--text-muted)">${fmt(r.devolver)}</td>
           <td class="td-num">${saldoStatus(disp)}</td>
         </tr>`;
       }).join('');

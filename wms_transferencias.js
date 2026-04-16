@@ -24,6 +24,27 @@ function getTransferFiltered() {
   });
 }
 
+/* ---- Verifica se busca atual bate em ZERO_STOCK_DATA e abre seção ---- */
+function checkAndShowNoStock() {
+  const search = (document.getElementById('filter-t-produto').value || '').toLowerCase().trim();
+  if (!search) return;
+
+  const noStockSection = document.getElementById('nostock-section');
+  const toggleBtn      = document.getElementById('toggle-nostock');
+  if (!noStockSection || !toggleBtn) return;
+
+  const hasMatch = ZERO_STOCK_DATA.some(r =>
+    r.cd_material.toLowerCase().includes(search) ||
+    r.desc_material.toLowerCase().includes(search)
+  );
+
+  if (hasMatch && noStockSection.style.display === 'none') {
+    noStockSection.style.display = 'flex';
+    toggleBtn.textContent = '▲ Ocultar Sem Estoque';
+    renderNoStock();
+  }
+}
+
 /* ---- Render tabela principal de sugestões ---- */
 function renderTransfer() {
   const filtered = sortData(getTransferFiltered(), state.transfer.sort.col, state.transfer.sort.dir);
@@ -92,7 +113,7 @@ function renderNoStock() {
         <td><code style="font-family:var(--mono);font-size:11px;color:var(--danger)">${r.cd_material}</code></td>
         <td title="${r.desc_material}">${r.desc_material}</td>
         <td>${cdBadge(r.cd)}</td>
-        <td style="font-family:var(--mono);font-size:12px;color:var(--text-muted)">ARM ${r.cd_centro_armaz}</td>
+        <td style="font-family:var(--mono);font-size:12px;color:var(--text-muted)">ARM ${r.armaz}</td>
         <td class="td-num"><span class="val-critical">${r.saldo.toLocaleString('pt-BR')}</span></td>
         <td class="td-num"><span class="val-critical">${r.disponivel.toLocaleString('pt-BR')}</span></td>
       </tr>`).join('');
@@ -110,12 +131,14 @@ function initTransfer() {
       stateNoStock.page   = 1;
       renderTransfer();
       renderNoStock();
+      checkAndShowNoStock();
     });
     document.getElementById(id).addEventListener('change', () => {
       state.transfer.page = 1;
       stateNoStock.page   = 1;
       renderTransfer();
       renderNoStock();
+      checkAndShowNoStock();
     });
   });
 
